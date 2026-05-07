@@ -9,11 +9,14 @@ const model = defineModel<string>({ required: true });
     <div class="mb-3">
       <h2 class="text-base font-semibold text-slate-950">System Prompt</h2>
       <p class="mt-1 text-sm leading-6 text-slate-500">
-        这里保存机器人长期规则。后续接入 API 时，会把它提交给后端并映射为高优先级指令。
+        这里保存机器人长期规则。发送请求时，会把它提交给后端并映射为高优先级指令。
       </p>
     </div>
 
+    <label class="sr-only" for="system-prompt">System Prompt</label>
     <textarea
+      id="system-prompt"
+      name="system-prompt"
       v-model="model"
       class="min-h-[360px] w-full resize-none rounded-md border border-slate-300 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-800 outline-none transition focus:border-sky-500 focus:bg-white focus:ring-4 focus:ring-sky-100"
       spellcheck="false"

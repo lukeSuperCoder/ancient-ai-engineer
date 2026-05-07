@@ -21,7 +21,15 @@ async function scrollToBottom() {
   listRef.value.scrollTop = listRef.value.scrollHeight;
 }
 
-watch(() => props.messages.length, scrollToBottom, { immediate: true });
+watch(
+  () => [
+    props.messages.length,
+    props.messages.at(-1)?.content,
+    props.messages.at(-1)?.status,
+  ],
+  scrollToBottom,
+  { immediate: true },
+);
 </script>
 
 <template>

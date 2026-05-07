@@ -6,7 +6,16 @@ import { useChat } from "../composables/useChat";
 
 // ChatShell 是页面级组件：负责组装左侧设置区和右侧聊天区。
 // 具体的数据状态放在 useChat，避免页面组件越来越臃肿。
-const { systemPrompt, messages, draft, canSend, sendMessage, resetMessages } = useChat();
+const {
+  systemPrompt,
+  messages,
+  draft,
+  isSending,
+  isStreaming,
+  canSend,
+  sendMessage,
+  resetMessages,
+} = useChat();
 </script>
 
 <template>
@@ -15,13 +24,14 @@ const { systemPrompt, messages, draft, canSend, sendMessage, resetMessages } = u
     <div class="mx-auto flex h-full w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
       <header class="shrink-0 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p class="text-sm font-medium text-sky-700">Stage 1</p>
+          <p class="text-sm font-medium text-sky-700">Stage 3</p>
           <h1 class="text-2xl font-semibold text-slate-950">Mini ChatGPT</h1>
         </div>
 
         <button
           type="button"
           class="h-10 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          :disabled="isSending"
           @click="resetMessages"
         >
           重置示例
@@ -35,7 +45,13 @@ const { systemPrompt, messages, draft, canSend, sendMessage, resetMessages } = u
         <div class="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <MessageList :messages="messages" />
 
-          <ChatInput v-model="draft" :can-send="canSend" @send="sendMessage" />
+          <ChatInput
+            v-model="draft"
+            :can-send="canSend"
+            :is-sending="isSending"
+            :is-streaming="isStreaming"
+            @send="sendMessage"
+          />
         </div>
       </section>
     </div>
