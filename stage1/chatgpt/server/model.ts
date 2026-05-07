@@ -70,6 +70,31 @@ export async function createChatReply(body: ChatRequestBody) {
   };
 }
 
+export async function* streamChatReply(body: ChatRequestBody) {
+  const messages = normalizeMessages(body.messages);
+
+  if (messages.length === 0 || messages.at(-1)?.role !== "user") {
+    throw new Error("messages must end with a user message");
+  }
+
+  // 第四阶段开始使用真正的模型流式输出。
+  // Anthropic SDK 会把底层 SSE 解析成结构化事件；我们只抽取 text_delta。
+  const stream = client.messages.stream({
+    model: modelConfig.model,
+    max_tokens: modelConfig.maxTokens,
+    system: body.systemPrompt?.trim() || "You are a helpful assistant.",
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") {
+      continue;
+    }
+
+    yield event.delta.text;
+  }
+}
+
 export function getPublicModelInfo() {
   return {
     model: modelConfig.model,

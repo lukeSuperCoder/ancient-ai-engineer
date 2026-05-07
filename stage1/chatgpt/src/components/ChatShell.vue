@@ -24,7 +24,7 @@ const {
     <div class="mx-auto flex h-full w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
       <header class="shrink-0 flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p class="text-sm font-medium text-sky-700">Stage 3</p>
+          <p class="text-sm font-medium text-sky-700">Stage 4</p>
           <h1 class="text-2xl font-semibold text-slate-950">Mini ChatGPT</h1>
         </div>
 

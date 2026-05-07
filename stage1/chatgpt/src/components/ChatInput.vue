@@ -38,9 +38,9 @@ function handleKeydown(event: KeyboardEvent) {
 
         <!-- 第二阶段开始区分“发送中”和“生成中”，后续接真实 API 时会继续沿用这两个状态。 -->
         <p class="mt-2 h-5 text-xs text-slate-500">
-          <span v-if="isStreaming">正在等待模型回复...</span>
+          <span v-if="isStreaming">正在流式生成回复...</span>
           <span v-else-if="isSending">正在发送...</span>
-          <span v-else>第三阶段已接入后端 API，第四阶段会升级为流式输出。</span>
+          <span v-else>第四阶段已接入 Streaming，回复会逐段显示。</span>
         </p>
       </div>
 

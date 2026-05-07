@@ -1,7 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { getModelConfig } from "./config";
-import { createChatReply, getPublicModelInfo } from "./model";
+import { createChatReply, getPublicModelInfo, streamChatReply } from "./model";
 
 const app = express();
 const { port } = getModelConfig();
@@ -27,6 +27,33 @@ app.post("/api/chat", async (request, response) => {
     response.status(500).json({
       error: message,
     });
+  }
+});
+
+function writeSse(response: express.Response, event: string, data: unknown) {
+  // SSE 事件格式固定为 event + data + 空行。
+  // data 使用 JSON，前端解析时就不用处理换行、引号等边界情况。
+  response.write(`event: ${event}\n`);
+  response.write(`data: ${JSON.stringify(data)}\n\n`);
+}
+
+app.post("/api/chat/stream", async (request, response) => {
+  response.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  response.setHeader("Cache-Control", "no-cache, no-transform");
+  response.setHeader("Connection", "keep-alive");
+  response.flushHeaders();
+
+  try {
+    for await (const delta of streamChatReply(request.body)) {
+      writeSse(response, "delta", { text: delta });
+    }
+
+    writeSse(response, "done", {});
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown server error";
+    writeSse(response, "error", { error: message });
+  } finally {
+    response.end();
   }
 });
 

@@ -8,14 +8,14 @@ const DEFAULT_SYSTEM_PROMPT = `你是一个面向前端初学者的 AI 编程助
 3. 代码示例使用 TypeScript。
 4. 如果用户问题不清楚，先指出缺失信息。`;
 
-// 第三阶段开始接入真实 API，但前端状态流转仍然沿用第二阶段打好的结构：
-// user 消息 -> assistant 占位消息 -> 请求后端 -> done/error。
+// 第四阶段开始接入 Streaming：
+// user 消息 -> assistant 占位消息 -> 请求后端流式接口 -> 持续追加文本 -> done/error。
 const initialMessages: ChatMessage[] = [
   {
     id: "welcome",
     role: "assistant",
     content:
-      "你好，我是 Mini ChatGPT。当前是第三阶段 API 接入版本，可以通过后端代理调用统一配置的模型。",
+      "你好，我是 Mini ChatGPT。当前是第四阶段 Streaming 版本，模型回复会通过流式接口逐段显示。",
     createdAt: Date.now() - 1000 * 60 * 2,
     status: "done",
   },
@@ -90,8 +90,33 @@ function getRecentApiMessages(messageList: ChatMessage[]) {
     .slice(-20);
 }
 
-async function requestChatReply(systemPrompt: string, messageList: ChatMessage[]) {
-  const response = await fetch("/api/chat", {
+function parseSseEvents(buffer: string) {
+  const rawEvents = buffer.split("\n\n");
+  const rest = rawEvents.pop() ?? "";
+
+  const events = rawEvents.map((rawEvent) => {
+    const eventLine = rawEvent
+      .split("\n")
+      .find((line) => line.startsWith("event:"));
+    const dataLine = rawEvent
+      .split("\n")
+      .find((line) => line.startsWith("data:"));
+
+    return {
+      event: eventLine?.replace(/^event:\s*/, "") || "message",
+      data: dataLine?.replace(/^data:\s*/, "") || "{}",
+    };
+  });
+
+  return { events, rest };
+}
+
+async function streamChatReply(
+  systemPrompt: string,
+  messageList: ChatMessage[],
+  onDelta: (text: string) => void,
+) {
+  const response = await fetch("/api/chat/stream", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -102,19 +127,41 @@ async function requestChatReply(systemPrompt: string, messageList: ChatMessage[]
     }),
   });
 
-  const data = (await response.json().catch(() => null)) as
-    | { text?: string; error?: string }
-    | null;
-
   if (!response.ok) {
-    throw new Error(data?.error || `API 请求失败：${response.status}`);
+    throw new Error(`API 请求失败：${response.status}`);
   }
 
-  if (!data?.text) {
-    throw new Error("API 返回内容为空");
+  if (!response.body) {
+    throw new Error("浏览器不支持读取流式响应");
   }
 
-  return data.text;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  // 通过 ReadableStream 逐块读取后端返回的 SSE 数据，解析出每个事件并调用 onDelta 更新消息内容。
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+    // SSE 事件可能被分割成多段流式数据，需要累积到 buffer 中，直到解析出完整事件。
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = parseSseEvents(buffer);
+    buffer = parsed.rest;
+
+    for (const item of parsed.events) {
+      const data = JSON.parse(item.data) as { text?: string; error?: string };
+
+      if (item.event === "delta" && data.text) {
+        onDelta(data.text);
+      }
+
+      if (item.event === "error") {
+        throw new Error(data.error || "流式请求失败");
+      }
+    }
+  }
 }
 
 // composable 用来集中管理聊天状态。
@@ -141,15 +188,25 @@ export function useChat() {
     messages.value.push(createMessage("user", content));
     draft.value = "";
 
-    // 先创建 assistant 占位消息，这是第四阶段 Streaming 的基础结构。
-    // 第三阶段先等待完整 API 回复，再一次性填入 content。
+    // 先创建 assistant 占位消息；收到每个 delta 后持续追加 content。
     const assistantMessage = createMessage("assistant", "", "streaming");
     messages.value.push(assistantMessage);
 
     try {
-      const reply = await requestChatReply(systemPrompt.value, messages.value);
+      await streamChatReply(systemPrompt.value, messages.value, (delta) => {
+        const currentContent =
+          messages.value.find((message) => message.id === assistantMessage.id)?.content || "";
+
+        messages.value = replaceMessageById(messages.value, assistantMessage.id, {
+          content: currentContent + delta,
+        });
+      });
+
+      const finalContent =
+        messages.value.find((message) => message.id === assistantMessage.id)?.content || "";
+
       messages.value = replaceMessageById(messages.value, assistantMessage.id, {
-        content: reply,
+        content: finalContent || "模型没有返回内容。",
         status: "done",
       });
     } catch (error) {
