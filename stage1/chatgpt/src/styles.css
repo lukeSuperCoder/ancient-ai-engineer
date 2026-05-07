@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "highlight.js/styles/github.css";
 
 * {
   box-sizing: border-box;
@@ -25,10 +26,101 @@ textarea {
   font: inherit;
 }
 
-/* 第一阶段先做纯文本展示。
-   后续接入 Markdown 时，会把模型输出渲染到 .prose-message 中。 */
+/* 模型回复会被 Markdown 渲染到 .prose-message 中。
+   这里不用 Tailwind prose 插件，直接写少量样式，便于学习每类 Markdown 元素如何影响界面。 */
 .prose-message {
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.prose-message-ai {
+  white-space: normal;
+}
+
+.prose-message-ai p {
+  margin: 0.5rem 0;
+}
+
+.prose-message-ai p:first-child {
+  margin-top: 0;
+}
+
+.prose-message-ai p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-message-ai ul,
+.prose-message-ai ol {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.prose-message-ai ul {
+  list-style: disc;
+}
+
+.prose-message-ai ol {
+  list-style: decimal;
+}
+
+.prose-message-ai li + li {
+  margin-top: 0.25rem;
+}
+
+.prose-message-ai code {
+  border-radius: 0.25rem;
+  background: #e2e8f0;
+  padding: 0.1rem 0.3rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.85em;
+}
+
+.prose-message-ai pre {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  padding: 0.875rem;
+}
+
+.prose-message-ai pre code {
+  display: block;
+  background: transparent;
+  padding: 0;
+  font-size: 0.85rem;
+  line-height: 1.65;
+}
+
+.prose-message-ai blockquote {
+  margin: 0.75rem 0;
+  border-left: 3px solid #38bdf8;
+  padding-left: 0.75rem;
+  color: #475569;
+}
+
+.prose-message-ai a {
+  color: #0369a1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-message-ai table {
+  margin: 0.75rem 0;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.prose-message-ai th,
+.prose-message-ai td {
+  border: 1px solid #cbd5e1;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+}
+
+.prose-message-ai th {
+  background: #e2e8f0;
+  font-weight: 600;
 }

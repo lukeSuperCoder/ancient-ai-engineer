@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { ChatMessage } from "../types/chat";
 import { formatMessageTime } from "../utils/format";
+import { renderMarkdown } from "../utils/markdown";
 
 const props = defineProps<{
   message: ChatMessage;
@@ -8,6 +10,8 @@ const props = defineProps<{
 
 const isUser = props.message.role === "user";
 const roleLabel = props.message.role === "user" ? "你" : "Mini ChatGPT";
+
+const renderedContent = computed(() => renderMarkdown(props.message.content));
 </script>
 
 <template>
@@ -30,9 +34,14 @@ const roleLabel = props.message.role === "user" ? "你" : "Mini ChatGPT";
             : 'border border-slate-200 bg-slate-50 text-slate-800',
         ]"
       >
-        <!-- 第二阶段仍用纯文本展示。
-             后续 Markdown 阶段会把这里替换成安全清洗后的 v-html。 -->
-        <div v-if="message.content" class="prose-message">{{ message.content }}</div>
+        <!-- assistant 消息支持 Markdown 和代码高亮。
+             用户消息继续按纯文本展示，避免把用户输入当 HTML 解释。 -->
+        <div
+          v-if="message.content && !isUser"
+          class="prose-message prose-message-ai"
+          v-html="renderedContent"
+        ></div>
+        <div v-else-if="message.content" class="prose-message">{{ message.content }}</div>
         <div v-else class="flex items-center gap-1 py-1 text-slate-500">
           <span class="h-2 w-2 animate-pulse rounded-full bg-slate-400"></span>
           <span class="h-2 w-2 animate-pulse rounded-full bg-slate-400 [animation-delay:120ms]"></span>

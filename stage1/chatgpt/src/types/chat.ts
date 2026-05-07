@@ -11,3 +11,14 @@ export interface ChatMessage {
   createdAt: number;
   status?: "streaming" | "done" | "error";
 }
+
+// 第五阶段开始支持多会话历史。
+// 每个会话独立保存 systemPrompt 和 messages，刷新页面后可以从 localStorage 恢复。
+export interface ChatConversation {
+  id: string;
+  title: string;
+  systemPrompt: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}

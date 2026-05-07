@@ -1,5 +1,7 @@
 import { computed, ref } from "vue";
-import type { ChatMessage } from "../types/chat";
+import type { ChatConversation, ChatMessage } from "../types/chat";
+
+const STORAGE_KEY = "mini-chatgpt.conversations.v1";
 
 const DEFAULT_SYSTEM_PROMPT = `你是一个面向前端初学者的 AI 编程助教。
 回答要求：
@@ -8,32 +10,16 @@ const DEFAULT_SYSTEM_PROMPT = `你是一个面向前端初学者的 AI 编程助
 3. 代码示例使用 TypeScript。
 4. 如果用户问题不清楚，先指出缺失信息。`;
 
-// 第四阶段开始接入 Streaming：
-// user 消息 -> assistant 占位消息 -> 请求后端流式接口 -> 持续追加文本 -> done/error。
-const initialMessages: ChatMessage[] = [
+const stageWelcomeMessage = "你好，我是 Mini ChatGPT。有什么问题都可以问我，左侧可以管理历史对话，System Prompt 通过顶部按钮设置。";
+
+const sampleMessages: ChatMessage[] = [
   {
     id: "welcome",
     role: "assistant",
-    content:
-      "你好，我是 Mini ChatGPT。当前是第四阶段 Streaming 版本，模型回复会通过流式接口逐段显示。",
+    content: stageWelcomeMessage,
     createdAt: Date.now() - 1000 * 60 * 2,
     status: "done",
-  },
-  {
-    id: "example-user",
-    role: "user",
-    content: "请用一句话解释 Vue 的响应式。",
-    createdAt: Date.now() - 1000 * 60,
-    status: "done",
-  },
-  {
-    id: "example-assistant",
-    role: "assistant",
-    content:
-      "Vue 的响应式可以理解为：数据变化时，框架会自动追踪依赖并更新使用这些数据的视图。",
-    createdAt: Date.now() - 1000 * 30,
-    status: "done",
-  },
+  }
 ];
 
 function createMessage(
@@ -50,9 +36,60 @@ function createMessage(
   };
 }
 
-function cloneInitialMessages() {
-  // reset 时重新创建数组，避免多个地方共享同一个引用。
-  return initialMessages.map((message) => ({ ...message }));
+function cloneMessages(messages: ChatMessage[]) {
+  // 复制消息对象，避免默认示例和真实会话共享同一批引用。
+  return messages.map((message) => ({ ...message }));
+}
+
+function createConversation(
+  title = "新对话",
+  messages: ChatMessage[] = [createMessage("assistant", stageWelcomeMessage)],
+): ChatConversation {
+  const now = Date.now();
+
+  return {
+    id: crypto.randomUUID(),
+    title,
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    messages: cloneMessages(messages),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function createSampleConversation() {
+  return createConversation("Vue 响应式示例", sampleMessages);
+}
+
+function safeReadConversations() {
+  try {
+    const rawValue = window.localStorage.getItem(STORAGE_KEY);
+
+    if (!rawValue) {
+      return [createSampleConversation()];
+    }
+
+    const parsed = JSON.parse(rawValue) as ChatConversation[];
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return [createSampleConversation()];
+    }
+
+    // 做一层轻量校验，避免 localStorage 被手动改坏后导致页面直接崩溃。
+    return parsed
+      .filter((conversation) => conversation.id && Array.isArray(conversation.messages))
+      .map((conversation) => ({
+        ...conversation,
+        systemPrompt: conversation.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+        title: conversation.title || "未命名对话",
+      }));
+  } catch {
+    return [createSampleConversation()];
+  }
+}
+
+function saveConversations(conversations: ChatConversation[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
 }
 
 function replaceMessageById(
@@ -67,7 +104,6 @@ function replaceMessageById(
   }
 
   // 用“替换数组元素”的方式更新消息，比直接修改对象属性更容易触发视图更新。
-  // 后续 Streaming 逐段追加 token 时，也可以复用这个 helper。
   const nextMessages = [...messageList];
   nextMessages[messageIndex] = {
     ...nextMessages[messageIndex],
@@ -138,6 +174,7 @@ async function streamChatReply(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+
   // 通过 ReadableStream 逐块读取后端返回的 SSE 数据，解析出每个事件并调用 onDelta 更新消息内容。
   while (true) {
     const { done, value } = await reader.read();
@@ -145,6 +182,7 @@ async function streamChatReply(
     if (done) {
       break;
     }
+
     // SSE 事件可能被分割成多段流式数据，需要累积到 buffer 中，直到解析出完整事件。
     buffer += decoder.decode(value, { stream: true });
     const parsed = parseSseEvents(buffer);
@@ -164,58 +202,202 @@ async function streamChatReply(
   }
 }
 
+function inferConversationTitle(messages: ChatMessage[], fallback: string) {
+  const firstUserMessage = messages.find((message) => message.role === "user");
+
+  if (!firstUserMessage) {
+    return fallback;
+  }
+
+  return firstUserMessage.content.slice(0, 18) || fallback;
+}
+
 // composable 用来集中管理聊天状态。
-// 组件只负责展示和触发动作，不直接关心消息数组如何变更。
+// 第五阶段新增“会话列表”后，组件仍然只触发动作，不直接写 localStorage。
 export function useChat() {
-  const systemPrompt = ref(DEFAULT_SYSTEM_PROMPT);
-  const messages = ref<ChatMessage[]>(cloneInitialMessages());
+  const conversations = ref<ChatConversation[]>(safeReadConversations());
+  const activeConversationId = ref(conversations.value[0]?.id ?? "");
   const draft = ref("");
   const isSending = ref(false);
+
+  const activeConversation = computed(
+    () =>
+      conversations.value.find(
+        (conversation) => conversation.id === activeConversationId.value,
+      ) ?? conversations.value[0],
+  );
+
+  const messages = computed(() => activeConversation.value?.messages ?? []);
+
+  const systemPrompt = computed({
+    get() {
+      return activeConversation.value?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+    },
+    set(value: string) {
+      updateActiveConversation({
+        systemPrompt: value,
+      });
+    },
+  });
+
+  const conversationSummaries = computed(() =>
+    [...conversations.value].sort((left, right) => right.updatedAt - left.updatedAt),
+  );
 
   const isStreaming = computed(() =>
     messages.value.some((message) => message.status === "streaming"),
   );
   const canSend = computed(() => draft.value.trim().length > 0 && !isSending.value);
 
+  function persist() {
+    saveConversations(conversations.value);
+  }
+
+  function updateConversation(
+    conversationId: string,
+    patch: Partial<ChatConversation>,
+    shouldPersist = true,
+  ) {
+    conversations.value = conversations.value.map((conversation) =>
+      conversation.id === conversationId
+        ? {
+            ...conversation,
+            ...patch,
+            updatedAt: patch.updatedAt ?? Date.now(),
+          }
+        : conversation,
+    );
+
+    if (shouldPersist) {
+      persist();
+    }
+  }
+
+  function updateActiveConversation(patch: Partial<ChatConversation>, shouldPersist = true) {
+    if (!activeConversation.value) {
+      return;
+    }
+
+    updateConversation(activeConversation.value.id, patch, shouldPersist);
+  }
+
+  function setActiveMessages(nextMessages: ChatMessage[], shouldPersist = true) {
+    const currentTitle = activeConversation.value?.title ?? "新对话";
+    const nextTitle =
+      currentTitle === "新对话"
+        ? inferConversationTitle(nextMessages, currentTitle)
+        : currentTitle;
+
+    updateActiveConversation(
+      {
+        messages: nextMessages,
+        title: nextTitle,
+      },
+      shouldPersist,
+    );
+  }
+
+  function createNewConversation() {
+    if (isSending.value) {
+      return;
+    }
+
+    const conversation = createConversation();
+    conversations.value = [conversation, ...conversations.value];
+    activeConversationId.value = conversation.id;
+    draft.value = "";
+    persist();
+  }
+
+  function selectConversation(conversationId: string) {
+    if (isSending.value) {
+      return;
+    }
+
+    activeConversationId.value = conversationId;
+    draft.value = "";
+  }
+
+  function deleteConversation(conversationId: string) {
+    if (isSending.value) {
+      return;
+    }
+
+    const nextConversations = conversations.value.filter(
+      (conversation) => conversation.id !== conversationId,
+    );
+
+    conversations.value =
+      nextConversations.length > 0 ? nextConversations : [createConversation()];
+
+    if (!conversations.value.some((conversation) => conversation.id === activeConversationId.value)) {
+      activeConversationId.value = conversations.value[0].id;
+    }
+
+    draft.value = "";
+    persist();
+  }
+
   async function sendMessage() {
     const content = draft.value.trim();
+    const activeId = activeConversation.value?.id;
 
-    if (!content || isSending.value) {
+    if (!content || isSending.value || !activeId) {
       return;
     }
 
     isSending.value = true;
-    messages.value.push(createMessage("user", content));
+
+    const userMessage = createMessage("user", content);
+    const assistantMessage = createMessage("assistant", "", "streaming");
+    const nextMessages = [...messages.value, userMessage, assistantMessage];
+
+    setActiveMessages(nextMessages);
     draft.value = "";
 
-    // 先创建 assistant 占位消息；收到每个 delta 后持续追加 content。
-    const assistantMessage = createMessage("assistant", "", "streaming");
-    messages.value.push(assistantMessage);
-
     try {
-      await streamChatReply(systemPrompt.value, messages.value, (delta) => {
+      await streamChatReply(systemPrompt.value, nextMessages, (delta) => {
+        const targetConversation = conversations.value.find(
+          (conversation) => conversation.id === activeId,
+        );
+        const currentMessages = targetConversation?.messages ?? [];
         const currentContent =
-          messages.value.find((message) => message.id === assistantMessage.id)?.content || "";
+          currentMessages.find((message) => message.id === assistantMessage.id)?.content || "";
 
-        messages.value = replaceMessageById(messages.value, assistantMessage.id, {
-          content: currentContent + delta,
-        });
+        updateConversation(
+          activeId,
+          {
+            messages: replaceMessageById(currentMessages, assistantMessage.id, {
+              content: currentContent + delta,
+            }),
+          },
+          false,
+        );
       });
 
+      const finalMessages =
+        conversations.value.find((conversation) => conversation.id === activeId)?.messages ?? [];
       const finalContent =
-        messages.value.find((message) => message.id === assistantMessage.id)?.content || "";
+        finalMessages.find((message) => message.id === assistantMessage.id)?.content || "";
 
-      messages.value = replaceMessageById(messages.value, assistantMessage.id, {
-        content: finalContent || "模型没有返回内容。",
-        status: "done",
+      updateConversation(activeId, {
+        messages: replaceMessageById(finalMessages, assistantMessage.id, {
+          content: finalContent || "模型没有返回内容。",
+          status: "done",
+        }),
       });
     } catch (error) {
-      messages.value = replaceMessageById(messages.value, assistantMessage.id, {
-        status: "error",
-        content:
-          error instanceof Error
-            ? `请求失败：${error.message}。你可以修改问题后重试。`
-            : "请求失败：未知错误。你可以修改问题后重试。",
+      const currentMessages =
+        conversations.value.find((conversation) => conversation.id === activeId)?.messages ?? [];
+
+      updateConversation(activeId, {
+        messages: replaceMessageById(currentMessages, assistantMessage.id, {
+          status: "error",
+          content:
+            error instanceof Error
+              ? `请求失败：${error.message}。你可以修改问题后重试。`
+              : "请求失败：未知错误。你可以修改问题后重试。",
+        }),
       });
     } finally {
       isSending.value = false;
@@ -227,17 +409,25 @@ export function useChat() {
       return;
     }
 
-    messages.value = cloneInitialMessages();
+    setActiveMessages(cloneMessages(sampleMessages));
+    updateActiveConversation({
+      title: "Vue 响应式示例",
+    });
     draft.value = "";
   }
 
   return {
     systemPrompt,
+    conversations: conversationSummaries,
+    activeConversationId,
     messages,
     draft,
     isSending,
     isStreaming,
     canSend,
+    createNewConversation,
+    selectConversation,
+    deleteConversation,
     sendMessage,
     resetMessages,
   };

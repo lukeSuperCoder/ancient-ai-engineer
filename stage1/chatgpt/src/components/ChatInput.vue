@@ -40,7 +40,7 @@ function handleKeydown(event: KeyboardEvent) {
         <p class="mt-2 h-5 text-xs text-slate-500">
           <span v-if="isStreaming">正在流式生成回复...</span>
           <span v-else-if="isSending">正在发送...</span>
-          <span v-else>第四阶段已接入 Streaming，回复会逐段显示。</span>
+          <span v-else>第五阶段已支持历史对话缓存，回复会继续流式显示。</span>
         </p>
       </div>
 
