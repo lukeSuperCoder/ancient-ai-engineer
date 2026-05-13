@@ -23,6 +23,11 @@ export interface ModelConfig {
   model: string;
   maxTokens: number;
   port: number;
+  agentMaxSteps: number;
+  qweatherApiHost: string;
+  qweatherApiToken?: string;
+  bigModelApiKey?: string;
+  bigModelSearchEngine: string;
 }
 
 function readRequiredEnv(name: string) {
@@ -53,5 +58,10 @@ export function getModelConfig(): ModelConfig {
     model: readRequiredEnv("MODEL_ID"),
     maxTokens: readNumberEnv("MAX_TOKENS", 1200),
     port: readNumberEnv("CHAT_API_PORT", 8787),
+    agentMaxSteps: readNumberEnv("AGENT_MAX_STEPS", 10),
+    qweatherApiHost: process.env.QWEATHER_API_HOST || "https://n95khw2yca.re.qweatherapi.com",
+    qweatherApiToken: process.env.QWEATHER_API_TOKEN,
+    bigModelApiKey: process.env.BIGMODEL_API_KEY,
+    bigModelSearchEngine: process.env.BIGMODEL_SEARCH_ENGINE || "search_std",
   };
 }

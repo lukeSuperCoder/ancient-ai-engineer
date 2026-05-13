@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
+import AgentTracePanel from "./AgentTracePanel.vue";
 import ChatInput from "./ChatInput.vue";
 import ConversationSidebar from "./ConversationSidebar.vue";
 import MessageList from "./MessageList.vue";
@@ -10,6 +11,7 @@ import { useChat } from "../composables/useChat";
 // 具体的数据状态放在 useChat，避免页面组件越来越臃肿。
 const {
   systemPrompt,
+  chatMode,
   conversations,
   activeConversationId,
   messages,
@@ -25,6 +27,9 @@ const {
 } = useChat();
 
 const isSystemPromptOpen = ref(false);
+const latestAgentMessage = computed(() =>
+  [...messages.value].reverse().find((message) => message.role === "assistant" && message.agent),
+);
 </script>
 
 <template>
@@ -38,6 +43,31 @@ const isSystemPromptOpen = ref(false);
         </div>
 
         <div class="flex flex-wrap gap-2">
+          <div class="flex h-10 overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm">
+            <button
+              type="button"
+              :class="[
+                'px-3 text-sm font-medium transition',
+                chatMode === 'chat' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50',
+              ]"
+              :disabled="isSending"
+              @click="chatMode = 'chat'"
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              :class="[
+                'border-l border-slate-300 px-3 text-sm font-medium transition',
+                chatMode === 'agent' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50',
+              ]"
+              :disabled="isSending"
+              @click="chatMode = 'agent'"
+            >
+              Agent
+            </button>
+          </div>
+
           <button
             type="button"
             class="h-10 rounded-md border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
@@ -68,15 +98,25 @@ const isSystemPromptOpen = ref(false);
           @delete-conversation="deleteConversation"
         />
 
-        <div class="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <MessageList :messages="messages" />
+        <div class="grid min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div class="flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <MessageList :messages="messages" />
 
-          <ChatInput
-            v-model="draft"
-            :can-send="canSend"
-            :is-sending="isSending"
-            :is-streaming="isStreaming"
-            @send="sendMessage"
+            <ChatInput
+              v-model="draft"
+              :can-send="canSend"
+              :is-sending="isSending"
+              :is-streaming="isStreaming"
+              :mode="chatMode"
+              @send="sendMessage"
+            />
+          </div>
+
+          <AgentTracePanel
+            class="hidden xl:flex"
+            :steps="latestAgentMessage?.agent?.steps ?? []"
+            :thoughts="latestAgentMessage?.agent?.thoughts ?? []"
+            :structured="latestAgentMessage?.agent?.structured"
           />
         </div>
       </section>

@@ -5,6 +5,7 @@ defineProps<{
   canSend: boolean;
   isSending: boolean;
   isStreaming: boolean;
+  mode: "chat" | "agent";
 }>();
 
 const emit = defineEmits<{
@@ -38,8 +39,10 @@ function handleKeydown(event: KeyboardEvent) {
 
         <!-- 第二阶段开始区分“发送中”和“生成中”，后续接真实 API 时会继续沿用这两个状态。 -->
         <p class="mt-2 h-5 text-xs text-slate-500">
-          <span v-if="isStreaming">正在流式生成回复...</span>
+          <span v-if="isStreaming && mode === 'chat'">正在流式生成回复...</span>
+          <span v-else-if="isSending && mode === 'agent'">Agent 正在决策并调用工具...</span>
           <span v-else-if="isSending">正在发送...</span>
+          <span v-else-if="mode === 'agent'">Agent 模式会自动选择工具，并在右侧展示执行日志。</span>
           <span v-else>第五阶段已支持历史对话缓存，回复会继续流式显示。</span>
         </p>
       </div>

@@ -21,7 +21,8 @@
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.1",
     "vite": "^6.3.0",
-    "vue": "^3.5.0"
+    "vue": "^3.5.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

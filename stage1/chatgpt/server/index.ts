@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { getModelConfig } from "./config";
+import { runAgent, streamAgent } from "./agent/runAgent";
 import { createChatReply, getPublicModelInfo, streamChatReply } from "./model";
 
 const app = express();
@@ -30,6 +31,19 @@ app.post("/api/chat", async (request, response) => {
   }
 });
 
+app.post("/api/agent", async (request, response) => {
+  try {
+    const result = await runAgent(request.body);
+    response.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown server error";
+
+    response.status(500).json({
+      error: message,
+    });
+  }
+});
+
 function writeSse(response: express.Response, event: string, data: unknown) {
   // SSE 事件格式固定为 event + data + 空行。
   // data 使用 JSON，前端解析时就不用处理换行、引号等边界情况。
@@ -46,6 +60,26 @@ app.post("/api/chat/stream", async (request, response) => {
   try {
     for await (const delta of streamChatReply(request.body)) {
       writeSse(response, "delta", { text: delta });
+    }
+
+    writeSse(response, "done", {});
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown server error";
+    writeSse(response, "error", { error: message });
+  } finally {
+    response.end();
+  }
+});
+
+app.post("/api/agent/stream", async (request, response) => {
+  response.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  response.setHeader("Cache-Control", "no-cache, no-transform");
+  response.setHeader("Connection", "keep-alive");
+  response.flushHeaders();
+
+  try {
+    for await (const item of streamAgent(request.body)) {
+      writeSse(response, item.type, item);
     }
 
     writeSse(response, "done", {});

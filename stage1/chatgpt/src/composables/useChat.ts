@@ -1,5 +1,12 @@
 import { computed, ref } from "vue";
-import type { ChatConversation, ChatMessage } from "../types/chat";
+import type {
+  AgentStep,
+  AgentStructuredResult,
+  AgentThought,
+  ChatConversation,
+  ChatMessage,
+  ChatMode,
+} from "../types/chat";
 
 const STORAGE_KEY = "mini-chatgpt.conversations.v1";
 
@@ -21,6 +28,24 @@ const sampleMessages: ChatMessage[] = [
     status: "done",
   }
 ];
+
+type AgentStreamPayload =
+  | {
+      type: "thinking";
+      thought: AgentThought;
+    }
+  | {
+      type: "step";
+      step: AgentStep;
+    }
+  | {
+      type: "delta";
+      text: string;
+    }
+  | {
+      type: "structured";
+      structured: AgentStructuredResult;
+    };
 
 function createMessage(
   role: ChatMessage["role"],
@@ -202,6 +227,64 @@ async function streamChatReply(
   }
 }
 
+async function streamAgentReply(
+  systemPrompt: string,
+  messageList: ChatMessage[],
+  onEvent: (payload: AgentStreamPayload) => void,
+) {
+  const response = await fetch("/api/agent/stream", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      systemPrompt,
+      messages: getRecentApiMessages(messageList),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Agent Stream API 请求失败：${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error("浏览器不支持读取 Agent 流式响应");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = parseSseEvents(buffer);
+    buffer = parsed.rest;
+
+    for (const item of parsed.events) {
+      const data = JSON.parse(item.data) as AgentStreamPayload | { error?: string };
+
+      if (item.event === "error") {
+        throw new Error("error" in data ? data.error || "Agent 流式请求失败" : "Agent 流式请求失败");
+      }
+
+      if (
+        item.event === "thinking" ||
+        item.event === "step" ||
+        item.event === "delta" ||
+        item.event === "structured"
+      ) {
+        onEvent(data as AgentStreamPayload);
+      }
+    }
+  }
+}
+
 function inferConversationTitle(messages: ChatMessage[], fallback: string) {
   const firstUserMessage = messages.find((message) => message.role === "user");
 
@@ -219,6 +302,7 @@ export function useChat() {
   const activeConversationId = ref(conversations.value[0]?.id ?? "");
   const draft = ref("");
   const isSending = ref(false);
+  const chatMode = ref<ChatMode>("chat");
 
   const activeConversation = computed(
     () =>
@@ -348,14 +432,109 @@ export function useChat() {
 
     isSending.value = true;
 
-    const userMessage = createMessage("user", content);
-    const assistantMessage = createMessage("assistant", "", "streaming");
+    const currentMode = chatMode.value;
+    const userMessage = {
+      ...createMessage("user", content),
+      mode: currentMode,
+    };
+    const assistantMessage = {
+      ...createMessage("assistant", "", "streaming"),
+      mode: currentMode,
+    };
     const nextMessages = [...messages.value, userMessage, assistantMessage];
 
     setActiveMessages(nextMessages);
     draft.value = "";
 
     try {
+      if (currentMode === "agent") {
+        await streamAgentReply(systemPrompt.value, nextMessages, (payload) => {
+          const targetConversation = conversations.value.find(
+            (conversation) => conversation.id === activeId,
+          );
+          const currentMessages = targetConversation?.messages ?? [];
+          const currentAssistant = currentMessages.find(
+            (message) => message.id === assistantMessage.id,
+          );
+          const currentAgent = currentAssistant?.agent ?? {
+            steps: [],
+            thoughts: [],
+          };
+
+          if (payload.type === "thinking") {
+            updateConversation(
+              activeId,
+              {
+                messages: replaceMessageById(currentMessages, assistantMessage.id, {
+                  agent: {
+                    ...currentAgent,
+                    thoughts: [...(currentAgent.thoughts ?? []), payload.thought],
+                  },
+                }),
+              },
+              false,
+            );
+          }
+
+          if (payload.type === "step") {
+            updateConversation(
+              activeId,
+              {
+                messages: replaceMessageById(currentMessages, assistantMessage.id, {
+                  agent: {
+                    ...currentAgent,
+                    steps: [...currentAgent.steps, payload.step],
+                  },
+                }),
+              },
+              false,
+            );
+          }
+
+          if (payload.type === "delta") {
+            updateConversation(
+              activeId,
+              {
+                messages: replaceMessageById(currentMessages, assistantMessage.id, {
+                  content: `${currentAssistant?.content ?? ""}${payload.text}`,
+                  agent: currentAgent,
+                }),
+              },
+              false,
+            );
+          }
+
+          if (payload.type === "structured") {
+            updateConversation(
+              activeId,
+              {
+                messages: replaceMessageById(currentMessages, assistantMessage.id, {
+                  agent: {
+                    ...currentAgent,
+                    structured: payload.structured,
+                  },
+                }),
+              },
+              false,
+            );
+          }
+        });
+
+        const finalMessages =
+          conversations.value.find((conversation) => conversation.id === activeId)?.messages ?? [];
+        const finalContent =
+          finalMessages.find((message) => message.id === assistantMessage.id)?.content || "";
+
+        updateConversation(activeId, {
+          messages: replaceMessageById(finalMessages, assistantMessage.id, {
+            content: finalContent || "Agent 没有返回内容。",
+            status: "done",
+          }),
+        });
+
+        return;
+      }
+
       await streamChatReply(systemPrompt.value, nextMessages, (delta) => {
         const targetConversation = conversations.value.find(
           (conversation) => conversation.id === activeId,
@@ -418,6 +597,7 @@ export function useChat() {
 
   return {
     systemPrompt,
+    chatMode,
     conversations: conversationSummaries,
     activeConversationId,
     messages,
