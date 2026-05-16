@@ -2,7 +2,7 @@
 // system 用来保存应用层规则，后续接 API 时会映射成模型的高优先级指令。
 export type ChatRole = "system" | "user" | "assistant";
 
-export type ChatMode = "chat" | "agent";
+export type ChatMode = "chat" | "agent" | "kb";
 
 export interface AgentStep {
   id: string;

@@ -66,6 +66,17 @@ const latestAgentMessage = computed(() =>
             >
               Agent
             </button>
+            <button
+              type="button"
+              :class="[
+                'border-l border-slate-300 px-3 text-sm font-medium transition',
+                chatMode === 'kb' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50',
+              ]"
+              :disabled="isSending"
+              @click="chatMode = 'kb'"
+            >
+              KB
+            </button>
           </div>
 
           <button

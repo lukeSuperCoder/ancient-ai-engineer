@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { getModelConfig } from "./config";
 import { runAgent, streamAgent } from "./agent/runAgent";
+import { streamKnowledgeReply } from "./knowledge";
 import { createChatReply, getPublicModelInfo, streamChatReply } from "./model";
 
 const app = express();
@@ -80,6 +81,26 @@ app.post("/api/agent/stream", async (request, response) => {
   try {
     for await (const item of streamAgent(request.body)) {
       writeSse(response, item.type, item);
+    }
+
+    writeSse(response, "done", {});
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown server error";
+    writeSse(response, "error", { error: message });
+  } finally {
+    response.end();
+  }
+});
+
+app.post("/api/kb/stream", async (request, response) => {
+  response.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  response.setHeader("Cache-Control", "no-cache, no-transform");
+  response.setHeader("Connection", "keep-alive");
+  response.flushHeaders();
+
+  try {
+    for await (const delta of streamKnowledgeReply(request.body)) {
+      writeSse(response, "delta", { text: delta });
     }
 
     writeSse(response, "done", {});

@@ -28,6 +28,14 @@ export interface ModelConfig {
   qweatherApiToken?: string;
   bigModelApiKey?: string;
   bigModelSearchEngine: string;
+  dbHost: string;
+  dbPort: number;
+  dbUser: string;
+  dbPassword?: string;
+  dbName: string;
+  embeddingApiUrl: string;
+  embeddingModel: string;
+  kbSimilarityThreshold: number;
 }
 
 function readRequiredEnv(name: string) {
@@ -63,5 +71,13 @@ export function getModelConfig(): ModelConfig {
     qweatherApiToken: process.env.QWEATHER_API_TOKEN,
     bigModelApiKey: process.env.BIGMODEL_API_KEY,
     bigModelSearchEngine: process.env.BIGMODEL_SEARCH_ENGINE || "search_std",
+    dbHost: process.env.DB_HOST || "localhost",
+    dbPort: readNumberEnv("DB_PORT", 5432),
+    dbUser: process.env.DB_USER || "luke",
+    dbPassword: process.env.DB_PASSWORD,
+    dbName: process.env.DB_NAME || "vector_db",
+    embeddingApiUrl: process.env.EMBEDDING_API_URL || "http://127.0.0.1:11434/v1/embeddings",
+    embeddingModel: process.env.EMBEDDING_MODEL || "qwen3-embedding:0.6b",
+    kbSimilarityThreshold: readNumberEnv("KB_SIMILARITY_THRESHOLD", 0.3),
   };
 }

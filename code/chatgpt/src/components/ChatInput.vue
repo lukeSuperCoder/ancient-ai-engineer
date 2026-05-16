@@ -5,7 +5,7 @@ defineProps<{
   canSend: boolean;
   isSending: boolean;
   isStreaming: boolean;
-  mode: "chat" | "agent";
+  mode: "chat" | "agent" | "kb";
 }>();
 
 const emit = defineEmits<{
@@ -41,8 +41,10 @@ function handleKeydown(event: KeyboardEvent) {
         <p class="mt-2 h-5 text-xs text-slate-500">
           <span v-if="isStreaming && mode === 'chat'">正在流式生成回复...</span>
           <span v-else-if="isSending && mode === 'agent'">Agent 正在决策并调用工具...</span>
+          <span v-else-if="isSending && mode === 'kb'">正在检索知识库并生成回答...</span>
           <span v-else-if="isSending">正在发送...</span>
           <span v-else-if="mode === 'agent'">Agent 模式会自动选择工具，并在右侧展示执行日志。</span>
+          <span v-else-if="mode === 'kb'">知识库模式会从《三国演义》中检索相关段落并生成回答，回答会标注出处和原文。</span>
           <span v-else>第五阶段已支持历史对话缓存，回复会继续流式显示。</span>
         </p>
       </div>

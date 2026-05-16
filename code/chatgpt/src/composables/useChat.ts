@@ -285,6 +285,59 @@ async function streamAgentReply(
   }
 }
 
+async function streamKbReply(
+  systemPrompt: string,
+  messageList: ChatMessage[],
+  onDelta: (text: string) => void,
+) {
+  const response = await fetch("/api/kb/stream", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      systemPrompt,
+      messages: getRecentApiMessages(messageList),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`KB Stream API 请求失败：${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error("浏览器不支持读取知识库流式响应");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const parsed = parseSseEvents(buffer);
+    buffer = parsed.rest;
+
+    for (const item of parsed.events) {
+      const data = JSON.parse(item.data) as { text?: string; error?: string };
+
+      if (item.event === "delta" && data.text) {
+        onDelta(data.text);
+      }
+
+      if (item.event === "error") {
+        throw new Error(data.error || "知识库流式请求失败");
+      }
+    }
+  }
+}
+
 function inferConversationTitle(messages: ChatMessage[], fallback: string) {
   const firstUserMessage = messages.find((message) => message.role === "user");
 
@@ -528,6 +581,41 @@ export function useChat() {
         updateConversation(activeId, {
           messages: replaceMessageById(finalMessages, assistantMessage.id, {
             content: finalContent || "Agent 没有返回内容。",
+            status: "done",
+          }),
+        });
+
+        return;
+      }
+
+      if (currentMode === "kb") {
+        await streamKbReply(systemPrompt.value, nextMessages, (delta) => {
+          const targetConversation = conversations.value.find(
+            (conversation) => conversation.id === activeId,
+          );
+          const currentMessages = targetConversation?.messages ?? [];
+          const currentContent =
+            currentMessages.find((message) => message.id === assistantMessage.id)?.content || "";
+
+          updateConversation(
+            activeId,
+            {
+              messages: replaceMessageById(currentMessages, assistantMessage.id, {
+                content: currentContent + delta,
+              }),
+            },
+            false,
+          );
+        });
+
+        const finalMessages =
+          conversations.value.find((conversation) => conversation.id === activeId)?.messages ?? [];
+        const finalContent =
+          finalMessages.find((message) => message.id === assistantMessage.id)?.content || "";
+
+        updateConversation(activeId, {
+          messages: replaceMessageById(finalMessages, assistantMessage.id, {
+            content: finalContent || "知识库没有返回内容。",
             status: "done",
           }),
         });
