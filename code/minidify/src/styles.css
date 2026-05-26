@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+:root {
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #0f1629;
+  --bg-node: #111827;
+  --accent-cyan: #06b6d4;
+  --accent-teal: #14b8a6;
+  --accent-glow: rgba(6, 182, 212, 0.3);
+  --text-primary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: #1e293b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 节点执行动画 */
+@keyframes node-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--accent-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--accent-cyan), 0 0 40px var(--accent-glow);
+  }
+}
+
+.node-executing {
+  animation: node-pulse 1.5s ease-in-out infinite;
+}
+
+/* ReactFlow 连线发光 */
+.react-flow__edge-path {
+  filter: drop-shadow(0 0 3px rgba(6, 182, 212, 0.4));
+}
+
+/* ReactFlow 连线标签 */
+.react-flow__edge-textbg {
+  fill: #111827;
+}
+
+.react-flow__edge-text {
+  fill: #94a3b8;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* 选中边高亮 */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #22d3ee;
+  stroke-width: 3;
+}
+
+/* 选区框 */
+.react-flow__selection {
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px dashed rgba(6, 182, 212, 0.4);
+}
+
+/* Ant Design 暗色覆盖 */
+.ant-modal-content {
+  border: 1px solid #1e293b;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-select-selector,
+.ant-btn {
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
