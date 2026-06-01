@@ -1,0 +1,6 @@
+/* content.css — minimal reset for the host element */
+#ai-wa-host {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+}

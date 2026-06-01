@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Web Assistant</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        width: 280px;
+        padding: 16px;
+        color: #1a1a2e;
+        background: #f8f9fc;
+      }
+      h1 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #2d3561;
+        margin-bottom: 12px;
+      }
+      .tip {
+        font-size: 12px;
+        color: #8b8fa3;
+        line-height: 1.6;
+        margin-bottom: 14px;
+      }
+      a {
+        display: inline-block;
+        font-size: 12px;
+        color: #6c5ce7;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <h1>AI Web Assistant</h1>
+    <p class="tip">在任意网页上选中文字，浮层会自动出现，提供解释、翻译、总结等功能。</p>
+    <a href="#" id="settings-link">⚙ 设置 API Key</a>
+    <script src="popup.js"></script>
+  </body>
+</html>
