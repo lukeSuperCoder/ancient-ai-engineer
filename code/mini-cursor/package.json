@@ -1,0 +1,128 @@
+{
+  "name": "mini-cursor",
+  "displayName": "Mini Cursor",
+  "description": "AI-powered code editor assistant — Explain, Refactor, Generate, Inline Edit",
+  "version": "0.1.0",
+  "publisher": "mini-cursor",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onCommand:miniCursor.explain",
+    "onCommand:miniCursor.refactor",
+    "onCommand:miniCursor.generate",
+    "onCommand:miniCursor.inlineEdit",
+    "onView:miniCursor.sidebar"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "miniCursor.explain",
+        "title": "Mini Cursor: Explain Code",
+        "enablement": "editorHasSelection"
+      },
+      {
+        "command": "miniCursor.refactor",
+        "title": "Mini Cursor: Refactor Code",
+        "enablement": "editorHasSelection"
+      },
+      {
+        "command": "miniCursor.generate",
+        "title": "Mini Cursor: Generate Code"
+      },
+      {
+        "command": "miniCursor.inlineEdit",
+        "title": "Mini Cursor: Inline Edit",
+        "enablement": "editorHasSelection"
+      },
+      {
+        "command": "miniCursor.openSettings",
+        "title": "Mini Cursor: Open Settings"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "miniCursor.explain",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "miniCursor.inlineEdit",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "miniCursor.generate",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      },
+      {
+        "command": "miniCursor.refactor",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorHasSelection"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "mini-cursor",
+          "title": "Mini Cursor",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "mini-cursor": [
+        {
+          "type": "webview",
+          "id": "miniCursor.sidebar",
+          "name": "Mini Cursor"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Mini Cursor",
+      "properties": {
+        "miniCursor.apiBaseURL": {
+          "type": "string",
+          "default": "https://open.bigmodel.cn/api/anthropic",
+          "description": "Anthropic-compatible API endpoint URL"
+        },
+        "miniCursor.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API Key for the LLM service"
+        },
+        "miniCursor.model": {
+          "type": "string",
+          "default": "glm-5",
+          "description": "Model name to use"
+        },
+        "miniCursor.maxTokens": {
+          "type": "number",
+          "default": 2048,
+          "description": "Maximum tokens for AI response"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}
