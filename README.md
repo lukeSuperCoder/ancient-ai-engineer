@@ -11,12 +11,13 @@
 
 ## 当前进度
 
-已完成阶段一至阶段四（理论 + 代码）：
+已完成阶段一至阶段五（理论 + 代码）：
 
 - **阶段一**：LLM 基础、Prompt Engineering、Mini ChatGPT 应用
 - **阶段二**：Tool Calling、Structured Output、MCP 协议、AI Tool Agent
 - **阶段三**：Embedding、Chunking、pgvector、RAG Pipeline、企业知识库系统
 - **阶段四**：Agent 模式（ReAct/Planner/Reflection）、Workflow（DAG/状态机）、LangGraph、Multi-Agent 系统
+- **阶段五**：Chrome Extension、VSCode 插件、AI 网页助手、Mini Cursor
 
 ## 目录结构
 
@@ -29,16 +30,21 @@
 │   ├── stage1/                   # 阶段一：LLM 基础 / Prompt / API
 │   ├── stage2/                   # 阶段二：Tool Calling / MCP
 │   ├── stage3/                   # 阶段三：RAG / 企业知识库
-│   └── stage4/                   # 阶段四：Agent / Workflow / LangGraph
+│   ├── stage4/                   # 阶段四：Agent / Workflow / LangGraph
+│   └── stage5/                   # 阶段五：AI 插件 / IDE Tooling
 ├── plan/
 │   ├── 学习路线.md               # 阶段式学习路线
 │   └── 目标清单.md               # Checklist 风格目标清单
 ├── stage1/
-│   ├── chatgpt/                  # Mini ChatGPT 前后端项目
 │   └── learncc/                  # Agent / Prompt / Tooling 教学代码
 ├── stage2/                       # Tool Calling / MCP 示例代码
 ├── stage3/                       # RAG / 向量数据库示例代码
-└── stage4/                       # Agent / LangGraph / Multi-Agent 示例代码
+├── stage4/                       # Agent / LangGraph / Multi-Agent 示例代码
+└── code/                         # 实战项目集合
+    ├── chatgpt/                  # Mini ChatGPT（Vue 3 + Express）
+    ├── minidify/                 # Mini Dify Workflow Builder（Vue 3 + ReactFlow）
+    ├── ai-web-assistant/         # AI 网页助手 Chrome 插件
+    └── mini-cursor/              # Mini Cursor VSCode 插件（AI 代码编辑器）
 ```
 
 ## 核心模块
@@ -58,8 +64,6 @@
 - 持久化任务看板、后台任务、Agent 团队管理
 
 `stage1/learncc/` 是一组渐进式 Python 示例（s01 ~ s19）。
-
-`stage1/chatgpt/` 是 Vue 3 + Express + Anthropic SDK 的 Mini ChatGPT 项目。
 
 ### 3. 阶段二：Tool Calling / MCP
 
@@ -122,6 +126,35 @@
 - `06_langgraph.py`：LangGraph Agent（State/Node/Edge/Checkpoint）
 - `07_multi_agent.py`：四种 Multi-Agent 模式（Pipeline/Router/Collaborative/Debate）
 
+### 6. 阶段五：AI 插件 / IDE Tooling
+
+`docs/stage5/` 学习文档：
+
+- AI Tooling 与 AI IDE 基础
+- Chrome Extension 与 Manifest V3
+- Content Script 与 Background Worker
+- VSCode 插件开发基础
+- Monaco 与 CodeMirror 编辑器基础
+- AST 与 Parser 代码理解基础
+- AI 网页助手插件实战指南
+- Mini Cursor AI 代码编辑器实战指南
+
+`code/` 实战项目：
+
+- `code/ai-web-assistant/`：AI 网页助手 Chrome 插件（网页总结、翻译、高亮解释）
+- `code/mini-cursor/`：Mini Cursor VSCode 插件（Explain / Refactor / Generate / Inline Edit）
+
+### 7. 实战项目
+
+所有完整项目集中在 `code/` 目录：
+
+| 项目 | 技术栈 | 说明 |
+|------|--------|------|
+| `code/chatgpt/` | Vue 3 + Express + Anthropic SDK | Mini ChatGPT 聊天应用 |
+| `code/minidify/` | Vue 3 + ReactFlow + TypeScript | 可视化 Workflow Builder |
+| `code/ai-web-assistant/` | Chrome Extension Manifest V3 | AI 网页助手插件 |
+| `code/mini-cursor/` | VSCode Extension + TypeScript | AI 代码编辑器插件 |
+
 ## 环境要求
 
 - Node.js 18+
@@ -169,7 +202,7 @@ python stage4/07_multi_agent.py debate   # 直接运行辩论模式
 ### Mini ChatGPT
 
 ```bash
-cd stage1/chatgpt
+cd code/chatgpt
 npm install
 npm run dev
 ```
@@ -179,6 +212,26 @@ npm run dev
 - 前端：`http://localhost:5173`
 - 后端：`http://localhost:8787`
 
+### Mini Dify Workflow Builder
+
+```bash
+cd code/minidify
+npm install
+npm run dev
+```
+
+### Mini Cursor VSCode 插件
+
+```bash
+cd code/mini-cursor
+npm install
+# 在 VSCode 中按 F5 启动调试
+```
+
+### AI 网页助手 Chrome 插件
+
+在 Chrome 中加载 `code/ai-web-assistant/` 目录作为未打包扩展。
+
 ## 推荐学习顺序
 
 1. 阅读 `plan/学习路线.md` 和 `plan/目标清单.md`
@@ -186,13 +239,14 @@ npm run dev
 3. **阶段二**：Tool Calling → Structured Output → MCP → AI Tool Agent
 4. **阶段三**：Embedding → Chunking → pgvector → RAG Pipeline → 知识库系统
 5. **阶段四**：ReAct → Planner-Executor → Workflow → LangGraph → Multi-Agent
-6. 按阶段依次阅读 `docs/` 文档，运行对应的 `stage*/` 示例代码
+6. **阶段五**：Chrome 插件 → VSCode 插件 → AI 网页助手 → Mini Cursor
+7. 按阶段依次阅读 `docs/` 文档，运行对应的 `stage*/` 示例代码和 `code/` 项目
 
 ## 后续规划
 
-- **阶段五**：Chrome 插件 / VSCode 插件 / AI IDE（Mini Cursor）
 - **阶段六**：工程化 / Docker 部署 / Redis 异步 / CI/CD
-- Mini Dify Workflow Builder 可视化项目（阶段四实战项目）
+- 完善 Mini Cursor：添加 Inline Diff 预览、多模型支持
+- 完善 AI 网页助手：添加选项页配置、多语言支持
 
 ## 注意事项
 
