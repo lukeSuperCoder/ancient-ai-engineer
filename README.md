@@ -11,13 +11,14 @@
 
 ## 当前进度
 
-已完成阶段一至阶段五（理论 + 代码）：
+已完成阶段一至阶段六（理论 + 代码）：
 
 - **阶段一**：LLM 基础、Prompt Engineering、Mini ChatGPT 应用
 - **阶段二**：Tool Calling、Structured Output、MCP 协议、AI Tool Agent
 - **阶段三**：Embedding、Chunking、pgvector、RAG Pipeline、企业知识库系统
 - **阶段四**：Agent 模式（ReAct/Planner/Reflection）、Workflow（DAG/状态机）、LangGraph、Multi-Agent 系统
 - **阶段五**：Chrome Extension、VSCode 插件、AI 网页助手、Mini Cursor
+- **阶段六**：Retry/Fallback、Prompt 版本管理、Guardrails、日志监控、Token 优化、Docker 部署、CI/CD、AI 应用生产化
 
 ## 目录结构
 
@@ -32,6 +33,7 @@
 │   ├── stage3/                   # 阶段三：RAG / 企业知识库
 │   ├── stage4/                   # 阶段四：Agent / Workflow / LangGraph
 │   └── stage5/                   # 阶段五：AI 插件 / IDE Tooling
+│   └── stage6/                   # 阶段六：工程化 / 部署 / 优化
 ├── plan/
 │   ├── 学习路线.md               # 阶段式学习路线
 │   └── 目标清单.md               # Checklist 风格目标清单
@@ -144,7 +146,20 @@
 - `code/ai-web-assistant/`：AI 网页助手 Chrome 插件（网页总结、翻译、高亮解释）
 - `code/mini-cursor/`：Mini Cursor VSCode 插件（Explain / Refactor / Generate / Inline Edit）
 
-### 7. 实战项目
+### 7. 阶段六：工程化 / 部署 / 优化
+
+`docs/stage6/` 学习文档：
+
+- Retry 与 Fallback 策略
+- Prompt 版本管理
+- Guardrails 与输出防护
+- 日志监控与可观测性
+- Token 优化与成本控制
+- Docker 容器化部署
+- CI/CD 与自动化发布
+- AI 应用生产化实战指南
+
+### 8. 实战项目
 
 所有完整项目集中在 `code/` 目录：
 
@@ -240,13 +255,15 @@ npm install
 4. **阶段三**：Embedding → Chunking → pgvector → RAG Pipeline → 知识库系统
 5. **阶段四**：ReAct → Planner-Executor → Workflow → LangGraph → Multi-Agent
 6. **阶段五**：Chrome 插件 → VSCode 插件 → AI 网页助手 → Mini Cursor
-7. 按阶段依次阅读 `docs/` 文档，运行对应的 `stage*/` 示例代码和 `code/` 项目
+7. **阶段六**：Retry/Fallback → Prompt 版本管理 → Guardrails → 日志监控 → Token 优化 → Docker → CI/CD → 生产化实战
+8. 按阶段依次阅读 `docs/` 文档，运行对应的 `stage*/` 示例代码和 `code/` 项目
 
 ## 后续规划
 
-- **阶段六**：工程化 / Docker 部署 / Redis 异步 / CI/CD
 - 完善 Mini Cursor：添加 Inline Diff 预览、多模型支持
 - 完善 AI 网页助手：添加选项页配置、多语言支持
+- 所有实战项目 Docker 化与 CI/CD 落地
+- 整理技术博客与面试准备材料
 
 ## 注意事项
 
